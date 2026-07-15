@@ -11,9 +11,8 @@ export const tiendanubeApiClient = axios.create({
 });
 
 tiendanubeApiClient.interceptors.request.use(
-  (config) => {
-    // Do something before request is sent
-    const { access_token } = userRepository.findOne(
+  async (config) => {
+    const { access_token } = await userRepository.findOne(
       +config.url?.split("/")[0]!!
     );
     config.headers["Authorization"] = `Bearer ${access_token}`;

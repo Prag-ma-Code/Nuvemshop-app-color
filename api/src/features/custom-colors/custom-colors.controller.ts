@@ -5,28 +5,28 @@ import { StatusCode } from "@utils";
 import CustomColorsService from "./custom-colors.service";
 
 class CustomColorsController {
-  public getPublic = (
+  public getPublic = async (
     req: Request,
     res: Response,
     next: NextFunction
-  ): Response | void => {
+  ): Promise<Response | void> => {
     try {
       const productId = Number(req.query.product_id);
-      const data = CustomColorsService.getPublic(productId);
+      const data = await CustomColorsService.getPublic(productId);
       return res.status(StatusCode.OK).json(data);
     } catch (error) {
       return next(error);
     }
   };
 
-  public getByProduct = (
+  public getByProduct = async (
     req: Request,
     res: Response,
     next: NextFunction
-  ): Response | void => {
+  ): Promise<Response | void> => {
     try {
       const productId = Number(req.params.product_id);
-      const data = CustomColorsService.getByStoreAndProduct(
+      const data = await CustomColorsService.getByStoreAndProduct(
         +req.user.user_id,
         productId
       );
@@ -36,15 +36,15 @@ class CustomColorsController {
     }
   };
 
-  public save = (
+  public save = async (
     req: Request,
     res: Response,
     next: NextFunction
-  ): Response | void => {
+  ): Promise<Response | void> => {
     try {
       const productId = Number(req.body.product_id);
       const mappings = (req.body.mappings ?? {}) as Record<string, string>;
-      const data = CustomColorsService.save(+req.user.user_id, productId, mappings);
+      const data = await CustomColorsService.save(+req.user.user_id, productId, mappings);
       return res.status(StatusCode.OK).json(data);
     } catch (error) {
       return next(error);

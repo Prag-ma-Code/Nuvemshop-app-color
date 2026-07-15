@@ -1,64 +1,52 @@
-import low from "lowdb";
-import FileSync from "lowdb/adapters/FileSync";
-
+import { supabase } from "@config/supabase.client";
 import { ICustomColorRecord } from "@repository/UserRepository";
 
-interface IDatabase {
-  credentials: unknown[];
-  customColors: ICustomColorRecord[];
-}
-
-const adapter = new FileSync<IDatabase>("db.json");
-const database = low(adapter);
-
 class CustomColorsRepository {
-  public findByProduct(productId: number): Record<string, string> {
-    return this.toMap(
-      (database.get("customColors").value() ?? []).filter(
-        (record) => Number(record.product_id) === Number(productId)
-      )
-    );
+  public async findByProduct(productId: number): Promise<Record<string, string>> {
+    const { data } = await supabase
+      .from("custom_colors")
+      .select("*")
+      .eq("product_id", productId);
+
+    return this.toMap(data ?? []);
   }
 
-  public findByStoreAndProduct(
+  public async findByStoreAndProduct(
     storeId: number,
     productId: number
-  ): Record<string, string> {
-    return this.toMap(
-      (database.get("customColors").value() ?? []).filter(
-        (record) =>
-          Number(record.store_id) === Number(storeId) &&
-          Number(record.product_id) === Number(productId)
-      )
-    );
+  ): Promise<Record<string, string>> {
+    const { data } = await supabase
+      .from("custom_colors")
+      .select("*")
+      .eq("store_id", storeId)
+      .eq("product_id", productId);
+
+    return this.toMap(data ?? []);
   }
 
-  public replaceForProduct(
+  public async replaceForProduct(
     storeId: number,
     productId: number,
     mappings: Record<string, string>
-  ): Record<string, string> {
-    const currentRecords = database.get("customColors").value() ?? [];
-    const nextRecords = currentRecords.filter(
-      (record) =>
-        !(
-          Number(record.store_id) === Number(storeId) &&
-          Number(record.product_id) === Number(productId)
-        )
-    );
+  ): Promise<Record<string, string>> {
+    await supabase
+      .from("custom_colors")
+      .delete()
+      .eq("store_id", storeId)
+      .eq("product_id", productId);
 
-    Object.entries(mappings)
+    const records = Object.entries(mappings)
       .filter(([, colorHex]) => Boolean(colorHex))
-      .forEach(([variantName, colorHex]) => {
-        nextRecords.push({
-          store_id: Number(storeId),
-          product_id: Number(productId),
-          variant_name: variantName.trim(),
-          color_hex: colorHex.trim(),
-        });
-      });
+      .map(([variantName, colorHex]) => ({
+        store_id: Number(storeId),
+        product_id: Number(productId),
+        variant_name: variantName.trim(),
+        color_hex: colorHex.trim(),
+      }));
 
-    database.set("customColors", nextRecords).write();
+    if (records.length > 0) {
+      await supabase.from("custom_colors").insert(records);
+    }
 
     return this.findByStoreAndProduct(storeId, productId);
   }

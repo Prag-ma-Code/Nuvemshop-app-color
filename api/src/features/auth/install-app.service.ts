@@ -29,8 +29,8 @@ class InstallAppService {
       );
     }
 
-    // Insert response of Authentication API at db.json file
-    userRepository.save(authenticateResponse);
+    // Insert response of Authentication API at database
+    await userRepository.save(authenticateResponse);
 
     await this.registerScriptTag(authenticateResponse.user_id, publicApiBaseUrl);
 

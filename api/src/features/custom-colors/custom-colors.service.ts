@@ -3,22 +3,22 @@ import { BadRequestException } from "@utils";
 import CustomColorsRepository from "./custom-colors.repository";
 
 class CustomColorsService {
-  public getPublic(productId: number): Record<string, string> {
+  public async getPublic(productId: number): Promise<Record<string, string>> {
     return CustomColorsRepository.findByProduct(productId);
   }
 
-  public getByStoreAndProduct(
+  public async getByStoreAndProduct(
     storeId: number,
     productId: number
-  ): Record<string, string> {
+  ): Promise<Record<string, string>> {
     return CustomColorsRepository.findByStoreAndProduct(storeId, productId);
   }
 
-  public save(
+  public async save(
     storeId: number,
     productId: number,
     mappings: Record<string, string>
-  ): Record<string, string> {
+  ): Promise<Record<string, string>> {
     if (!storeId || !productId) {
       throw new BadRequestException("Store and product identifiers are required");
     }
