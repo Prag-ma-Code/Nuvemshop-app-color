@@ -16,6 +16,9 @@ dist-ssr
 # Local Database
 db.json
 
+# Lockfile (managed at root level)
+yarn.lock
+
 # Editor directories and files
 .idea
 .vscode/*
