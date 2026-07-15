@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { navigateHeader } from '@tiendanube/nexo';
+import { navigateHeaderRemove } from '@tiendanube/nexo';
 import {
   Badge,
   Box,
@@ -88,7 +88,7 @@ const CustomColors: React.FC = () => {
   });
 
   useEffect(() => {
-    navigateHeader(nexo, { goTo: '/', text: 'Voltar ao inicio' });
+    navigateHeaderRemove(nexo);
     loadProducts();
   }, []);
 
