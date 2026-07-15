@@ -7,6 +7,7 @@ export interface ICustomColorRecord {
   product_id: number;
   variant_name: string;
   color_hex: string;
+  display_name?: string;
 }
 
 class UserRepository {

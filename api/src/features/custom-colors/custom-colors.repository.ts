@@ -1,34 +1,43 @@
 import { supabase } from "@config/supabase.client";
 import { ICustomColorRecord } from "@repository/UserRepository";
 
+export interface ColorMapping {
+  color_hex: string;
+  display_name?: string;
+}
+
+export interface ColorMappings {
+  [variantName: string]: ColorMapping;
+}
+
 class CustomColorsRepository {
-  public async findByProduct(productId: number): Promise<Record<string, string>> {
+  public async findByProduct(productId: number): Promise<ColorMappings> {
     const { data } = await supabase
       .from("custom_colors")
       .select("*")
       .eq("product_id", productId);
 
-    return this.toMap(data ?? []);
+    return this.toColorMappings(data ?? []);
   }
 
   public async findByStoreAndProduct(
     storeId: number,
     productId: number
-  ): Promise<Record<string, string>> {
+  ): Promise<ColorMappings> {
     const { data } = await supabase
       .from("custom_colors")
       .select("*")
       .eq("store_id", storeId)
       .eq("product_id", productId);
 
-    return this.toMap(data ?? []);
+    return this.toColorMappings(data ?? []);
   }
 
   public async replaceForProduct(
     storeId: number,
     productId: number,
-    mappings: Record<string, string>
-  ): Promise<Record<string, string>> {
+    mappings: ColorMappings
+  ): Promise<ColorMappings> {
     await supabase
       .from("custom_colors")
       .delete()
@@ -36,12 +45,13 @@ class CustomColorsRepository {
       .eq("product_id", productId);
 
     const records = Object.entries(mappings)
-      .filter(([, colorHex]) => Boolean(colorHex))
-      .map(([variantName, colorHex]) => ({
+      .filter(([, value]) => Boolean(value.color_hex))
+      .map(([variantName, value]) => ({
         store_id: Number(storeId),
         product_id: Number(productId),
         variant_name: variantName.trim(),
-        color_hex: colorHex.trim(),
+        color_hex: value.color_hex.trim(),
+        display_name: value.display_name?.trim() || null,
       }));
 
     if (records.length > 0) {
@@ -51,11 +61,19 @@ class CustomColorsRepository {
     return this.findByStoreAndProduct(storeId, productId);
   }
 
-  private toMap(records: ICustomColorRecord[]): Record<string, string> {
-    return records.reduce<Record<string, string>>((accumulator, record) => {
-      accumulator[record.variant_name] = record.color_hex;
-      return accumulator;
-    }, {});
+  private toColorMappings(
+    records: ICustomColorRecord[]
+  ): ColorMappings {
+    return records.reduce<ColorMappings>(
+      (accumulator, record) => {
+        accumulator[record.variant_name] = {
+          color_hex: record.color_hex,
+          display_name: record.display_name || undefined,
+        };
+        return accumulator;
+      },
+      {}
+    );
   }
 }
 

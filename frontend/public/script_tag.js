@@ -13,7 +13,6 @@
     if (currentScript) {
       return currentScript;
     }
-
     var scripts = document.getElementsByTagName('script');
     return scripts[scripts.length - 1] || null;
   }
@@ -21,11 +20,9 @@
   function getApiBaseUrl() {
     var scriptElement = getScriptElement();
     var fallbackUrl = window.__NUVEMSHOP_CUSTOM_COLORS_API__ || '';
-
     if (!scriptElement || !scriptElement.src) {
       return fallbackUrl;
     }
-
     try {
       var url = new URL(scriptElement.src, window.location.href);
       return url.searchParams.get('api_base') || fallbackUrl;
@@ -38,91 +35,95 @@
     if (!window.LS || !window.LS.product || !window.LS.product.id) {
       return '';
     }
-
     return String(window.LS.product.id);
   }
 
-  function isVariantMatch(node, variantName) {
-    var normalizedVariantName = normalizeText(variantName);
-    if (!normalizedVariantName) {
-      return false;
-    }
-
-    var text = normalizeText(node.textContent || '');
-    if (text === normalizedVariantName || text.indexOf(normalizedVariantName) !== -1) {
+  function isVariantNode(node) {
+    var tag = (node.tagName || '').toLowerCase();
+    if (tag === 'button' || tag === 'a' || tag === 'span' || tag === 'label') {
       return true;
     }
-
-    var attributes = [
-      node.getAttribute('data-variant'),
-      node.getAttribute('data-option-value'),
-      node.getAttribute('data-value'),
-      node.getAttribute('aria-label'),
-      node.getAttribute('title'),
-    ];
-
-    return attributes.some(function (attribute) {
-      return normalizeText(attribute).indexOf(normalizedVariantName) !== -1;
-    });
-  }
-
-  function setCircleStyle(node, colorHex, variantName) {
-    if (node.getAttribute('data-custom-color-applied') === 'true') {
-      return;
+    if (node.getAttribute('data-variant') !== null) return true;
+    if (node.getAttribute('data-option-value') !== null) return true;
+    if (node.getAttribute('data-value') !== null) return true;
+    if (node.getAttribute('role') === 'button') return true;
+    if (node.className && typeof node.className === 'string') {
+      if (node.className.indexOf('swatch') !== -1) return true;
+      if (node.className.indexOf('variant') !== -1) return true;
+      if (node.className.indexOf('option') !== -1) return true;
     }
-
-    node.setAttribute('data-custom-color-applied', 'true');
-    node.setAttribute('title', variantName);
-    node.setAttribute('aria-label', variantName);
-    node.style.backgroundColor = colorHex;
-    node.style.borderColor = colorHex;
-    node.style.borderRadius = '9999px';
-    node.style.width = '32px';
-    node.style.height = '32px';
-    node.style.minWidth = '32px';
-    node.style.minHeight = '32px';
-    node.style.padding = '0';
-    node.style.overflow = 'hidden';
-    node.style.display = 'inline-flex';
-    node.style.alignItems = 'center';
-    node.style.justifyContent = 'center';
-    node.style.color = 'transparent';
-    node.style.fontSize = '0';
-    node.style.lineHeight = '0';
-    node.style.textIndent = '-9999px';
-    node.style.boxShadow = '0 0 0 1px rgba(0, 0, 0, 0.08)';
+    return false;
   }
 
-  function applyCustomColors(map) {
+  function findVariantNodes() {
     var selectors = [
-      '.btn-variant',
       '.swatch',
+      '.btn-variant',
       '.variant-container button',
+      '.variant-option',
       '[data-variant]',
       '[data-option-value]',
       '[data-value]',
-      'button',
-      '[role="button"]',
+      '.product-variant',
     ];
+    var bySelector = document.querySelectorAll(selectors.join(', '));
+    if (bySelector.length > 0) {
+      return bySelector;
+    }
+    var all = document.querySelectorAll('button, a, span, label');
+    var filtered = [];
+    for (var i = 0; i < all.length; i++) {
+      if (isVariantNode(all[i])) {
+        filtered.push(all[i]);
+      }
+    }
+    return filtered;
+  }
 
-    var nodes = document.querySelectorAll(selectors.join(', '));
+  function applyMapping(map) {
+    var nodes = findVariantNodes();
+    var appliedKeys = {};
 
     Object.keys(map || {}).forEach(function (variantName) {
-      var colorHex = map[variantName];
+      var mapping = map[variantName];
+      if (!mapping || typeof mapping !== 'object') return;
+
+      var colorHex = mapping.color_hex;
+      var displayName = mapping.display_name;
+      var normalizedVariant = normalizeText(variantName);
 
       nodes.forEach(function (node) {
-        if (isVariantMatch(node, variantName)) {
-          setCircleStyle(node, colorHex, variantName);
+        var nodeText = normalizeText(node.textContent || '');
+        if (!nodeText) return;
+
+        if (nodeText.indexOf(normalizedVariant) === -1) return;
+
+        var key = variantName + '-' + (node.id || node.dataset ? Math.random() : '');
+        if (appliedKeys[key]) return;
+        appliedKeys[key] = true;
+
+        if (displayName && normalizeText(displayName) !== normalizedVariant) {
+          var originalText = node.textContent || '';
+          var regex = new RegExp(variantName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+          node.textContent = originalText.replace(regex, displayName);
+        }
+
+        if (colorHex) {
+          var bgColor = node.style.backgroundColor || '';
+          if (bgColor === '' || bgColor === 'transparent' || bgColor === 'rgba(0, 0, 0, 0)') {
+            node.style.backgroundColor = colorHex;
+            node.style.borderColor = colorHex;
+          }
         }
       });
     });
   }
 
   function startObserver(map) {
-    applyCustomColors(map);
+    applyMapping(map);
 
     var observer = new MutationObserver(function () {
-      applyCustomColors(map);
+      applyMapping(map);
     });
 
     observer.observe(document.documentElement, {
@@ -130,46 +131,32 @@
       childList: true,
     });
 
-    window.addEventListener(
-      'beforeunload',
-      function () {
-        observer.disconnect();
-      },
-      { once: true },
-    );
+    window.addEventListener('beforeunload', function () {
+      observer.disconnect();
+    }, { once: true });
   }
 
   async function bootstrap() {
     try {
       var productId = getProductId();
-      if (!productId) {
-        return;
-      }
+      if (!productId) return;
 
       var apiBaseUrl = getApiBaseUrl();
-      if (!apiBaseUrl) {
-        return;
-      }
+      if (!apiBaseUrl) return;
 
       var response = await fetch(
         apiBaseUrl.replace(/\/$/, '') +
           '/api/public/custom-colors?product_id=' +
           encodeURIComponent(productId),
-        {
-          credentials: 'omit',
-        },
+        { credentials: 'omit' },
       );
 
-      if (!response.ok) {
-        return;
-      }
+      if (!response.ok) return;
 
-      var colors = await response.json();
-      if (!colors || typeof colors !== 'object') {
-        return;
-      }
+      var data = await response.json();
+      if (!data || typeof data !== 'object') return;
 
-      startObserver(colors);
+      startObserver(data);
     } catch (error) {
       return;
     }
