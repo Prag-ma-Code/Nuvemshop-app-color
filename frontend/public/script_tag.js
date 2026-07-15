@@ -9,10 +9,13 @@
   }
 
   function getScriptElement() {
-    var currentScript = document.currentScript;
-    if (currentScript) return currentScript;
     var scripts = document.getElementsByTagName('script');
-    return scripts[scripts.length - 1] || null;
+    for (var i = 0; i < scripts.length; i++) {
+      if (scripts[i].src && scripts[i].src.indexOf('script_tag.js') !== -1) {
+        return scripts[i];
+      }
+    }
+    return null;
   }
 
   function getApiBaseUrl() {
