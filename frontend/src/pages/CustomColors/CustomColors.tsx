@@ -1,7 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { navigateHeader } from '@tiendanube/nexo';
-import { Box, Button, Card, Input, Spinner, Text } from '@nimbus-ds/components';
+import {
+  Badge,
+  Box,
+  Button,
+  Card,
+  Input,
+  Spinner,
+  Tag,
+  Text,
+  Thumbnail,
+  useToast,
+} from '@nimbus-ds/components';
 import { Layout, Page } from '@nimbus-ds/patterns';
 
 import { nexo } from '@/app';
@@ -61,10 +72,12 @@ const isNativeColorVariant = (variant: IVariant, product: IProduct): boolean => 
 
 const CustomColors: React.FC = () => {
   const { t } = useTranslation('translations');
+  const { addToast } = useToast();
   const { request } = useFetch();
   const [products, setProducts] = useState<IProduct[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [variantSearch, setVariantSearch] = useState('');
   const [savedMappings, setSavedMappings] = useState<ColorMappings>({});
   const [draftMappings, setDraftMappings] = useState<ColorMappings>({});
   const [showNativeColors, setShowNativeColors] = useState(true);
@@ -92,11 +105,17 @@ const CustomColors: React.FC = () => {
     (product) => product.id === selectedProductId,
   );
 
-  const visibleVariants = (selectedProduct?.variants ?? []).filter((variant) =>
-    selectedProduct
-      ? showNativeColors || !isNativeColorVariant(variant, selectedProduct)
-      : false,
-  );
+  const visibleVariants = (selectedProduct?.variants ?? [])
+    .filter((variant) =>
+      selectedProduct
+        ? showNativeColors || !isNativeColorVariant(variant, selectedProduct)
+        : false,
+    )
+    .filter((variant) => {
+      const term = normalizeText(variantSearch);
+      if (!term) return true;
+      return normalizeText(getVariantName(variant, selectedProduct!)).includes(term);
+    });
 
   const filteredProducts = products.filter((product) => {
     const term = normalizeText(searchTerm);
@@ -142,6 +161,10 @@ const CustomColors: React.FC = () => {
     return draftMappings[variantName] ?? savedMappings[variantName] ?? { color_hex: '#d1d5db', display_name: '' };
   };
 
+  const isDraft = (variantName: string): boolean => {
+    return variantName in draftMappings;
+  };
+
   const handleColorChange = (variantName: string, colorHex: string) => {
     setDraftMappings((current) => ({
       ...current,
@@ -175,6 +198,20 @@ const CustomColors: React.FC = () => {
       .then((response) => {
         setSavedMappings(response.content ?? mergedMappings);
         setDraftMappings({});
+        addToast({
+          type: 'success',
+          text: t('custom-colors.editor.save-success'),
+          duration: 4000,
+          id: 'save-success',
+        });
+      })
+      .catch(() => {
+        addToast({
+          type: 'danger',
+          text: t('custom-colors.editor.save-error'),
+          duration: 4000,
+          id: 'save-error',
+        });
       })
       .finally(() => {
         setIsLoading((current) => ({ ...current, saving: false }));
@@ -215,24 +252,42 @@ const CustomColors: React.FC = () => {
                         maxHeight="520px"
                         overflow="auto"
                       >
-                        {isLoading.products && <Spinner size="small" />}
+                        {isLoading.products && (
+                          <Box display="flex" justifyContent="center" padding="4">
+                            <Spinner size="small" />
+                          </Box>
+                        )}
 
                         {!isLoading.products &&
                           filteredProducts.map((product) => {
                             const isActive = product.id === selectedProductId;
 
                             return (
-                              <Button
+                              <Card
                                 key={product.id}
-                                appearance={isActive ? 'primary' : 'neutral'}
                                 onClick={() => setSelectedProductId(product.id)}
-                                style={{ justifyContent: 'flex-start' }}
+                                style={{
+                                  cursor: 'pointer',
+                                  outline: isActive ? '2px solid' : undefined,
+                                  outlineColor: isActive ? 'var(--nimbus-color-primary-interactive)' : undefined,
+                                }}
                               >
-                                <Box display="flex" flexDirection="column" alignItems="flex-start">
-                                  <Text>{getProductName(product)}</Text>
-                                  <Text>{product.variants?.length ?? 0} {t('custom-colors.products.variants')}</Text>
-                                </Box>
-                              </Button>
+                                <Card.Body>
+                                  <Box display="flex" gap="3" alignItems="center">
+                                    <Thumbnail
+                                      src={product.images?.[0]?.src}
+                                      width="44px"
+                                      alt={getProductName(product)}
+                                    />
+                                    <Box display="flex" flexDirection="column" gap="1" flex="1">
+                                      <Text fontWeight="bold">{getProductName(product)}</Text>
+                                      <Text fontSize="caption" color="neutral-textLow">
+                                        {product.variants?.length ?? 0} {t('custom-colors.products.variants')}
+                                      </Text>
+                                    </Box>
+                                  </Box>
+                              </Card.Body>
+                              </Card>
                             );
                           })}
 
@@ -257,8 +312,10 @@ const CustomColors: React.FC = () => {
 
                     {selectedProduct && (
                       <Box display="flex" flexDirection="column" gap="4">
-                        <Box display="flex" flexDirection="column" gap="1">
-                          <Text>{t('custom-colors.editor.helper')}</Text>
+                        <Box display="flex" flexDirection="row" gap="2" alignItems="center" flexWrap="wrap">
+                          <Box display="flex" flexDirection="column" gap="1" flex="1">
+                            <Text>{t('custom-colors.editor.helper')}</Text>
+                          </Box>
                           <Button
                             appearance="neutral"
                             onClick={() => setShowNativeColors((current) => !current)}
@@ -269,7 +326,17 @@ const CustomColors: React.FC = () => {
                           </Button>
                         </Box>
 
-                        {isLoading.mappings && <Spinner size="small" />}
+                        <Input
+                          value={variantSearch}
+                          onChange={(event) => setVariantSearch(event.target.value)}
+                          placeholder={t('custom-colors.editor.search-variant')}
+                        />
+
+                        {isLoading.mappings && (
+                          <Box display="flex" justifyContent="center" padding="4">
+                            <Spinner size="small" />
+                          </Box>
+                        )}
 
                         {!isLoading.mappings && visibleVariants.length === 0 && (
                           <Text>{t('custom-colors.editor.no-variants')}</Text>
@@ -279,67 +346,81 @@ const CustomColors: React.FC = () => {
                           visibleVariants.map((variant) => {
                             const variantName = getVariantName(variant, selectedProduct);
                             const mapping = getMapping(variantName);
+                            const hasDraft = isDraft(variantName);
 
                             return (
-                              <Box
-                                key={variant.id}
-                                display="flex"
-                                flexDirection="column"
-                                gap="3"
-                                padding="3"
-                                style={{
-                                  border: '1px solid #e5e7eb',
-                                  borderRadius: '12px',
-                                }}
-                              >
-                                <Box display="flex" justifyContent="space-between" alignItems="center">
-                                  <Box display="flex" flexDirection="column" gap="1">
-                                    <Text fontWeight="bold">{variantName}</Text>
-                                    {isNativeColorVariant(variant, selectedProduct) && (
-                                      <Text>{t('custom-colors.editor.native-color')}</Text>
-                                    )}
-                                  </Box>
-                                </Box>
+                              <Card key={variant.id}>
+                                <Card.Body>
+                                  <Box display="flex" flexDirection="column" gap="3">
+                                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                                      <Box display="flex" gap="2" alignItems="center">
+                                        <Text fontWeight="bold">{variantName}</Text>
+                                        {isNativeColorVariant(variant, selectedProduct) && (
+                                          <Tag appearance="neutral">
+                                            {t('custom-colors.editor.native-color')}
+                                          </Tag>
+                                        )}
+                                        {hasDraft && (
+                                          <Badge appearance="warning" count={t('custom-colors.editor.unsaved')} />
+                                        )}
+                                      </Box>
+                                    </Box>
 
-                                <Box display="flex" flexDirection="row" gap="3" alignItems="center" flexWrap="wrap">
-                                  <Box display="flex" gap="2" alignItems="center" flex="1">
-                                    <Text>Cor:</Text>
-                                    <input
-                                      type="color"
-                                      value={mapping.color_hex}
-                                      onChange={(event) =>
-                                        handleColorChange(variantName, event.target.value)
-                                      }
-                                      style={{
-                                        width: '48px',
-                                        height: '40px',
-                                        border: 'none',
-                                        background: 'transparent',
-                                        padding: 0,
-                                      }}
-                                    />
-                                    <Text>{mapping.color_hex.toUpperCase()}</Text>
-                                  </Box>
+                                    <Box display="flex" flexDirection="row" gap="3" alignItems="center" flexWrap="wrap">
+                                      <Box display="flex" gap="2" alignItems="center" flex="1">
+                                        <Box
+                                          style={{
+                                            width: '40px',
+                                            height: '40px',
+                                            borderRadius: '50%',
+                                            backgroundColor: mapping.color_hex,
+                                            border: '2px solid #e5e7eb',
+                                            flexShrink: 0,
+                                          }}
+                                        />
+                                        <input
+                                          type="color"
+                                          value={mapping.color_hex}
+                                          onChange={(event) =>
+                                            handleColorChange(variantName, event.target.value)
+                                          }
+                                          style={{
+                                            width: '40px',
+                                            height: '36px',
+                                            border: 'none',
+                                            background: 'transparent',
+                                            padding: 0,
+                                            cursor: 'pointer',
+                                          }}
+                                        />
+                                        <Text fontSize="caption" color="neutral-textLow">
+                                          {mapping.color_hex.toUpperCase()}
+                                        </Text>
+                                      </Box>
 
-                                  <Box display="flex" gap="2" alignItems="center" flex="2">
-                                    <Text>Nome na vitrine:</Text>
-                                    <Input
-                                      value={mapping.display_name ?? ''}
-                                      onChange={(event) =>
-                                        handleDisplayNameChange(variantName, event.target.value)
-                                      }
-                                      placeholder={variantName}
-                                    />
+                                      <Box display="flex" flexDirection="column" gap="1" flex="2">
+                                        <Text fontSize="caption">{t('custom-colors.editor.display-name')}</Text>
+                                        <Input
+                                          value={mapping.display_name ?? ''}
+                                          onChange={(event) =>
+                                            handleDisplayNameChange(variantName, event.target.value)
+                                          }
+                                          placeholder={variantName}
+                                        />
+                                      </Box>
+                                    </Box>
                                   </Box>
-                                </Box>
-                              </Box>
+                                </Card.Body>
+                              </Card>
                             );
                           })}
 
-                        <Button appearance="primary" onClick={handleSave} disabled={isLoading.saving}>
-                          {isLoading.saving && <Spinner color="currentColor" size="small" />}
-                          {t('custom-colors.editor.save')}
-                        </Button>
+                        <Box display="flex" justifyContent="flex-end">
+                          <Button appearance="primary" onClick={handleSave} disabled={isLoading.saving}>
+                            {isLoading.saving && <Spinner color="currentColor" size="small" />}
+                            {t('custom-colors.editor.save')}
+                          </Button>
+                        </Box>
                       </Box>
                     )}
                   </Card.Body>
