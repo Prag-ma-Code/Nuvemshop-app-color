@@ -168,14 +168,14 @@ const CustomColors: React.FC = () => {
   const handleColorChange = (variantName: string, colorHex: string) => {
     setDraftMappings((current) => ({
       ...current,
-      [variantName]: { ...getMapping(variantName), color_hex: colorHex },
+      [variantName]: { ...(current[variantName] ?? savedMappings[variantName] ?? { color_hex: '#d1d5db', display_name: '' }), color_hex: colorHex },
     }));
   };
 
   const handleDisplayNameChange = (variantName: string, displayName: string) => {
     setDraftMappings((current) => ({
       ...current,
-      [variantName]: { ...getMapping(variantName), display_name: displayName },
+      [variantName]: { ...(current[variantName] ?? savedMappings[variantName] ?? { color_hex: '#d1d5db', display_name: '' }), display_name: displayName },
     }));
   };
 
