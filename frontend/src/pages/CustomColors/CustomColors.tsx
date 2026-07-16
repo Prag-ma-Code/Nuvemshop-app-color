@@ -239,11 +239,11 @@ const CustomColors: React.FC = () => {
             <Box display="flex" flexDirection="column" gap="4">
               <Text>{t('custom-colors.description')}</Text>
 
-              <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap="4">
-                <Card>
+              <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap="4" style={{ height: 'calc(100vh - 200px)', minHeight: 0 }}>
+                <Card style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                   <Card.Header title={t('custom-colors.products.title')} />
-                  <Card.Body>
-                    <Box display="flex" flexDirection="column" gap="3">
+                  <Card.Body style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'auto' }}>
+                    <Box display="flex" flexDirection="column" gap="3" style={{ minHeight: 0 }}>
                       <Input
                         value={searchTerm}
                         onChange={(event) => setSearchTerm(event.target.value)}
@@ -254,8 +254,7 @@ const CustomColors: React.FC = () => {
                         display="flex"
                         flexDirection="column"
                         gap="4"
-                        maxHeight="520px"
-                        overflow="auto"
+                        style={{ flex: 1, overflow: 'auto', minHeight: 0 }}
                       >
                         {isLoading.products && (
                           <Box display="flex" justifyContent="center" padding="4">
@@ -281,7 +280,7 @@ const CustomColors: React.FC = () => {
                                 }}
                               >
                                 <Card.Body>
-                                  <Box display="flex" gap="3" alignItems="center">
+                                  <Box display="flex" gap="4" alignItems="center">
                                     <Box position="relative" style={{ flexShrink: 0 }}>
                                       <Thumbnail
                                         src={product.images?.[0]?.src}
@@ -338,7 +337,7 @@ const CustomColors: React.FC = () => {
                   </Card.Body>
                 </Card>
 
-                <Card>
+                <Card style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                   <Card.Header
                     title={
                       selectedProduct
@@ -346,11 +345,11 @@ const CustomColors: React.FC = () => {
                         : t('custom-colors.editor.empty-title')
                     }
                   />
-                  <Card.Body>
+                  <Card.Body style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'auto' }}>
                     {!selectedProduct && <Text>{t('custom-colors.editor.empty')}</Text>}
 
                     {selectedProduct && (
-                      <Box display="flex" flexDirection="column" gap="4">
+                      <Box display="flex" flexDirection="column" gap="4" style={{ minHeight: 0 }}>
                         <Box display="flex" flexDirection="row" gap="2" alignItems="center" flexWrap="wrap">
                           <Box display="flex" flexDirection="column" gap="1" flex="1">
                             <Text>{t('custom-colors.editor.helper')}</Text>
