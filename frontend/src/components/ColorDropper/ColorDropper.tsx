@@ -47,16 +47,16 @@ const ColorDropper: React.FC<ColorDropperProps> = ({ open, imageSrc, productName
   useEffect(() => {
     if (!open || !canvasRef.current || !containerRef.current) return;
 
+    let cancelled = false;
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const containerWidth = containerRef.current.clientWidth;
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = imageSrc;
 
     const drawImage = (image: HTMLImageElement) => {
+      if (cancelled) return;
       const aspectRatio = image.width / image.height;
       const width = Math.min(containerWidth || 600, image.width);
       const height = width / aspectRatio;
@@ -70,11 +70,18 @@ const ColorDropper: React.FC<ColorDropperProps> = ({ open, imageSrc, productName
       setCanvasReady(true);
     };
 
+    const img = new Image();
     img.onload = () => drawImage(img);
-
     img.onerror = () => {
+      if (cancelled) return;
       setCorsError(true);
       setCanvasReady(true);
+    };
+    img.crossOrigin = 'anonymous';
+    img.src = imageSrc;
+
+    return () => {
+      cancelled = true;
     };
   }, [open, imageSrc]);
 
