@@ -248,7 +248,7 @@ const CustomColors: React.FC = () => {
                       <Box
                         display="flex"
                         flexDirection="column"
-                        gap="2"
+                        gap="4"
                         maxHeight="520px"
                         overflow="auto"
                       >
@@ -263,13 +263,16 @@ const CustomColors: React.FC = () => {
                             const isActive = product.id === selectedProductId;
 
                             return (
-                              <Card
+                              <Box
+                                as={Card}
                                 key={product.id}
                                 onClick={() => setSelectedProductId(product.id)}
+                                cursor="pointer"
+                                boxShadow={{ xs: '1', hover: '3' }}
+                                backgroundColor={{ xs: isActive ? 'primary-surfaceHighlight' : 'neutral-background', hover: 'neutral-surfaceHighlight' }}
                                 style={{
-                                  cursor: 'pointer',
-                                  outline: isActive ? '2px solid' : undefined,
-                                  outlineColor: isActive ? 'var(--nimbus-color-primary-interactive)' : undefined,
+                                  outline: isActive ? '2px solid var(--nimbus-color-primary-interactive)' : undefined,
+                                  transition: 'box-shadow 0.2s ease, background-color 0.2s ease',
                                 }}
                               >
                                 <Card.Body>
@@ -287,7 +290,7 @@ const CustomColors: React.FC = () => {
                                     </Box>
                                   </Box>
                               </Card.Body>
-                              </Card>
+                              </Box>
                             );
                           })}
 
