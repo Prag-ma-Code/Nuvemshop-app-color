@@ -239,11 +239,11 @@ const CustomColors: React.FC = () => {
             <Box display="flex" flexDirection="column" gap="4">
               <Text>{t('custom-colors.description')}</Text>
 
-              <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap="4" style={{ height: 'calc(100vh - 200px)', minHeight: 0 }}>
-                <Card style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap="4">
+                <Card style={{ display: 'flex', flexDirection: 'column', height: '680px' }}>
                   <Card.Header title={t('custom-colors.products.title')} />
-                  <Card.Body style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'auto' }}>
-                    <Box display="flex" flexDirection="column" gap="3" style={{ minHeight: 0 }}>
+                  <Card.Body style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                    <Box display="flex" flexDirection="column" gap="3" style={{ flex: 1, minHeight: 0 }}>
                       <Input
                         value={searchTerm}
                         onChange={(event) => setSearchTerm(event.target.value)}
@@ -337,7 +337,7 @@ const CustomColors: React.FC = () => {
                   </Card.Body>
                 </Card>
 
-                <Card style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                <Card style={{ display: 'flex', flexDirection: 'column', height: '680px' }}>
                   <Card.Header
                     title={
                       selectedProduct
@@ -345,11 +345,11 @@ const CustomColors: React.FC = () => {
                         : t('custom-colors.editor.empty-title')
                     }
                   />
-                  <Card.Body style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'auto' }}>
+                  <Card.Body style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                     {!selectedProduct && <Text>{t('custom-colors.editor.empty')}</Text>}
 
                     {selectedProduct && (
-                      <Box display="flex" flexDirection="column" gap="4" style={{ minHeight: 0 }}>
+                      <Box display="flex" flexDirection="column" gap="4">
                         <Box display="flex" flexDirection="row" gap="2" alignItems="center" flexWrap="wrap">
                           <Box display="flex" flexDirection="column" gap="1" flex="1">
                             <Text>{t('custom-colors.editor.helper')}</Text>
