@@ -255,99 +255,98 @@ const CustomColors: React.FC = () => {
                       {t('custom-colors.products.title')}
                     </Text>
                   </Box>
+                  <Box padding="4" paddingTop="none" paddingBottom="2">
+                    <Input
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                      placeholder={t('custom-colors.products.search')}
+                    />
+                  </Box>
                   <Box
                     display="flex"
                     flexDirection="column"
-                    gap="3"
+                    gap="4"
                     padding="4"
                     paddingTop="2"
                     overflow="auto"
                     flex="1"
                     minHeight="0"
                   >
-                    <Input
-                      value={searchTerm}
-                      onChange={(event) => setSearchTerm(event.target.value)}
-                      placeholder={t('custom-colors.products.search')}
-                    />
+                    {isLoading.products && (
+                      <Box display="flex" justifyContent="center" padding="4">
+                        <Spinner size="small" />
+                      </Box>
+                    )}
 
-                    <Box display="flex" flexDirection="column" gap="4">
-                      {isLoading.products && (
-                        <Box display="flex" justifyContent="center" padding="4">
-                          <Spinner size="small" />
-                        </Box>
-                      )}
+                    {!isLoading.products &&
+                      filteredProducts.map((product) => {
+                        const isActive = product.id === selectedProductId;
 
-                      {!isLoading.products &&
-                        filteredProducts.map((product) => {
-                          const isActive = product.id === selectedProductId;
-
-                          return (
-                            <Box
-                              key={product.id}
-                              onClick={() => setSelectedProductId(product.id)}
-                              cursor="pointer"
-                              boxShadow={{ xs: '1', hover: '3' }}
-                              backgroundColor={{ xs: isActive ? 'primary-surfaceHighlight' : 'neutral-background', hover: 'neutral-surfaceHighlight' }}
-                              borderRadius="2"
-                              padding="4"
-                              width="100%"
-                              borderWidth={isActive ? '2' : undefined}
-                              borderStyle={isActive ? 'solid' : undefined}
-                              borderColor={isActive ? 'primary-interactive' : undefined}
-                            >
-                              <Box display="flex" gap="4" alignItems="center">
-                                <Box position="relative" style={{ flexShrink: 0 }}>
-                                  <Thumbnail
-                                    src={product.images?.[0]?.src}
-                                    width="44px"
-                                    alt={getProductName(product)}
-                                  />
-                                  {product.images?.[0]?.src && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setDropperImage(product.images[0].src);
-                                        setDropperProductName(getProductName(product));
-                                      }}
-                                      title="Extrair cor da imagem"
-                                      style={{
-                                        position: 'absolute',
-                                        bottom: '-4px',
-                                        right: '-4px',
-                                        width: '22px',
-                                        height: '22px',
-                                        borderRadius: '50%',
-                                        border: '2px solid white',
-                                        backgroundColor: 'var(--nimbus-color-primary-interactive)',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        padding: 0,
-                                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                                      }}
-                                    >
-                                      <ColorPaletteIcon size={12} color="white" />
-                                    </button>
-                                  )}
-                                </Box>
-                                <Box display="flex" flexDirection="column" gap="1" flex="1">
-                                  <Text fontWeight="bold">{getProductName(product)}</Text>
-                                  <Text fontSize="caption" color="neutral-textLow">
-                                    {product.variants?.length ?? 0} {t('custom-colors.products.variants')}
-                                  </Text>
-                                </Box>
+                        return (
+                          <Box
+                            key={product.id}
+                            onClick={() => setSelectedProductId(product.id)}
+                            cursor="pointer"
+                            boxShadow={{ xs: '1', hover: '3' }}
+                            backgroundColor={{ xs: isActive ? 'primary-surfaceHighlight' : 'neutral-background', hover: 'neutral-surfaceHighlight' }}
+                            borderRadius="2"
+                            padding="4"
+                            width="100%"
+                            borderWidth={isActive ? '2' : undefined}
+                            borderStyle={isActive ? 'solid' : undefined}
+                            borderColor={isActive ? 'primary-interactive' : undefined}
+                          >
+                            <Box display="flex" gap="4" alignItems="center">
+                              <Box position="relative" style={{ flexShrink: 0 }}>
+                                <Thumbnail
+                                  src={product.images?.[0]?.src}
+                                  width="44px"
+                                  alt={getProductName(product)}
+                                />
+                                {product.images?.[0]?.src && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDropperImage(product.images[0].src);
+                                      setDropperProductName(getProductName(product));
+                                    }}
+                                    title="Extrair cor da imagem"
+                                    style={{
+                                      position: 'absolute',
+                                      bottom: '-4px',
+                                      right: '-4px',
+                                      width: '22px',
+                                      height: '22px',
+                                      borderRadius: '50%',
+                                      border: '2px solid white',
+                                      backgroundColor: 'var(--nimbus-color-primary-interactive)',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      padding: 0,
+                                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                                    }}
+                                  >
+                                    <ColorPaletteIcon size={12} color="white" />
+                                  </button>
+                                )}
+                              </Box>
+                              <Box display="flex" flexDirection="column" gap="1" flex="1">
+                                <Text fontWeight="bold">{getProductName(product)}</Text>
+                                <Text fontSize="caption" color="neutral-textLow">
+                                  {product.variants?.length ?? 0} {t('custom-colors.products.variants')}
+                                </Text>
                               </Box>
                             </Box>
-                          );
-                        })}
+                          </Box>
+                        );
+                      })}
 
-                      {!isLoading.products && filteredProducts.length === 0 && (
-                        <Text>{t('custom-colors.products.empty')}</Text>
-                      )}
-                    </Box>
+                    {!isLoading.products && filteredProducts.length === 0 && (
+                      <Text>{t('custom-colors.products.empty')}</Text>
+                    )}
                   </Box>
                 </Box>
 
