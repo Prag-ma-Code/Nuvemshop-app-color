@@ -24,9 +24,16 @@ function isLight(hex: string): boolean {
   return (r * 299 + g * 587 + b * 114) / 1000 > 128;
 }
 
+const ZOOM = 8;
+const LENS_SIZE = 200;
+
 const ColorDropper: React.FC<ColorDropperProps> = ({ open, imageSrc, productName, onDismiss, onPickColor }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lensCanvasRef = useRef<HTMLCanvasElement>(null);
+  const lensCtxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const lensPosRef = useRef<{ x: number; y: number; visible: boolean }>({ x: 0, y: 0, visible: false });
   const [pickedColors, setPickedColors] = useState<PickedColor[]>([]);
   const [hoverColor, setHoverColor] = useState<string | null>(null);
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
@@ -41,6 +48,13 @@ const ColorDropper: React.FC<ColorDropperProps> = ({ open, imageSrc, productName
       setHoverPos(null);
       setCanvasReady(false);
       setCorsError(false);
+      lensPosRef.current = { x: 0, y: 0, visible: false };
+      if (lensCanvasRef.current) lensCanvasRef.current.style.display = 'none';
+    } else {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
     }
   }, [open]);
 
@@ -85,6 +99,68 @@ const ColorDropper: React.FC<ColorDropperProps> = ({ open, imageSrc, productName
     };
   }, [open, imageSrc]);
 
+  useEffect(() => {
+    const lensCanvas = lensCanvasRef.current;
+    if (lensCanvas) {
+      lensCanvas.width = LENS_SIZE;
+      lensCanvas.height = LENS_SIZE;
+      const ctx = lensCanvas.getContext('2d');
+      if (ctx) {
+        ctx.imageSmoothingEnabled = false;
+        lensCtxRef.current = ctx;
+      }
+    }
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, []);
+
+  const drawLens = useCallback(() => {
+    const lensCanvas = lensCanvasRef.current;
+    const ctx = lensCtxRef.current;
+    const mainCanvas = canvasRef.current;
+
+    if (!lensCanvas || !ctx || !mainCanvas) {
+      rafRef.current = null;
+      return;
+    }
+
+    const pos = lensPosRef.current;
+
+    ctx.clearRect(0, 0, LENS_SIZE, LENS_SIZE);
+
+    if (!pos.visible) {
+      lensCanvas.style.display = 'none';
+      rafRef.current = null;
+      return;
+    }
+
+    lensCanvas.style.display = 'block';
+
+    const srcSize = LENS_SIZE / ZOOM;
+    const srcX = Math.max(0, Math.min(pos.x - srcSize / 2, mainCanvas.width - srcSize));
+    const srcY = Math.max(0, Math.min(pos.y - srcSize / 2, mainCanvas.height - srcSize));
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(LENS_SIZE / 2, LENS_SIZE / 2, LENS_SIZE / 2 - 2, 0, Math.PI * 2);
+    ctx.clip();
+
+    ctx.drawImage(mainCanvas, srcX, srcY, srcSize, srcSize, 0, 0, LENS_SIZE, LENS_SIZE);
+    ctx.restore();
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(LENS_SIZE / 2, LENS_SIZE / 2, LENS_SIZE / 2 - 2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    rafRef.current = requestAnimationFrame(drawLens);
+  }, []);
+
   const readPixelColor = useCallback((clientX: number, clientY: number): string | null => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -107,17 +183,47 @@ const ColorDropper: React.FC<ColorDropperProps> = ({ open, imageSrc, productName
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (corsError) return;
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
     const rect = canvas.getBoundingClientRect();
+    const x = Math.round(e.clientX - rect.left);
+    const y = Math.round(e.clientY - rect.top);
+
     const hex = readPixelColor(e.clientX, e.clientY);
     setHoverColor(hex);
-    setHoverPos(hex ? { x: e.clientX - rect.left, y: e.clientY - rect.top } : null);
-  }, [readPixelColor, corsError]);
+    setHoverPos(hex ? { x, y } : null);
+
+    const lensCanvas = lensCanvasRef.current;
+    if (!lensCanvas) return;
+
+    lensPosRef.current = { x, y, visible: true };
+
+    const gap = 12;
+    let lensLeft = x + gap;
+    let lensTop = y - LENS_SIZE - gap;
+    const containerWidth = container.clientWidth;
+    if (lensLeft + LENS_SIZE > containerWidth) lensLeft = x - LENS_SIZE - gap;
+    if (lensTop < 0) lensTop = y + gap;
+    lensLeft = Math.max(2, Math.min(lensLeft, containerWidth - LENS_SIZE - 2));
+    lensTop = Math.max(2, lensTop);
+
+    lensCanvas.style.left = `${lensLeft}px`;
+    lensCanvas.style.top = `${lensTop}px`;
+
+    if (!rafRef.current) {
+      rafRef.current = requestAnimationFrame(drawLens);
+    }
+  }, [readPixelColor, corsError, drawLens]);
 
   const handleMouseLeave = useCallback(() => {
     setHoverColor(null);
     setHoverPos(null);
-  }, []);
+    lensPosRef.current = { x: 0, y: 0, visible: false };
+    if (!rafRef.current) {
+      rafRef.current = requestAnimationFrame(drawLens);
+    }
+  }, [drawLens]);
 
   const handleCanvasClick = useCallback(async (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (corsError) {
@@ -162,7 +268,7 @@ const ColorDropper: React.FC<ColorDropperProps> = ({ open, imageSrc, productName
       <Modal.Header title={`Seletor de cor — ${productName}`} />
       <Modal.Body padding="none">
         <Box position="relative" width="100%">
-          <div ref={containerRef} style={{ width: '100%' }}>
+          <div ref={containerRef} style={{ width: '100%', position: 'relative' }}>
             {!canvasReady && (
               <Box display="flex" justifyContent="center" padding="8">
                 <Text>Carregando imagem...</Text>
@@ -185,6 +291,19 @@ const ColorDropper: React.FC<ColorDropperProps> = ({ open, imageSrc, productName
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
               onClick={handleCanvasClick}
+            />
+            <canvas
+              ref={lensCanvasRef}
+              style={{
+                display: 'none',
+                position: 'absolute',
+                width: `${LENS_SIZE}px`,
+                height: `${LENS_SIZE}px`,
+                borderRadius: '50%',
+                pointerEvents: 'none',
+                zIndex: 20,
+                boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
+              }}
             />
           </div>
 
