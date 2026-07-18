@@ -13,11 +13,9 @@ import {
   useToast,
 } from '@nimbus-ds/components';
 import { Layout, Page } from '@nimbus-ds/patterns';
-import { ColorPaletteIcon } from '@nimbus-ds/icons';
 
 import { nexo } from '@/app';
 import { useFetch } from '@/hooks';
-import { ColorDropper } from '@/components';
 import { IProduct, IVariant } from '../Products/products.types';
 
 interface ColorMapping {
@@ -87,8 +85,6 @@ const CustomColors: React.FC = () => {
     mappings: false,
     saving: false,
   });
-  const [dropperImage, setDropperImage] = useState<string | null>(null);
-  const [dropperProductName, setDropperProductName] = useState('');
 
   useEffect(() => {
     navigateHeaderRemove(nexo);
@@ -303,35 +299,6 @@ const CustomColors: React.FC = () => {
                                   width="44px"
                                   alt={getProductName(product)}
                                 />
-                                {product.images?.[0]?.src && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setDropperImage(product.images[0].src);
-                                      setDropperProductName(getProductName(product));
-                                    }}
-                                    title="Extrair cor da imagem"
-                                    style={{
-                                      position: 'absolute',
-                                      bottom: '-4px',
-                                      right: '-4px',
-                                      width: '22px',
-                                      height: '22px',
-                                      borderRadius: '50%',
-                                      border: '2px solid white',
-                                      backgroundColor: 'var(--nimbus-color-primary-interactive)',
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      padding: 0,
-                                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                                    }}
-                                  >
-                                    <ColorPaletteIcon size={12} color="white" />
-                                  </button>
-                                )}
                               </Box>
                               <Box display="flex" flexDirection="column" gap="1" flex="1">
                                 <Text fontWeight="bold">{getProductName(product)}</Text>
@@ -507,14 +474,6 @@ const CustomColors: React.FC = () => {
         </Layout>
       </Page.Body>
     </Page>
-    {dropperImage && (
-      <ColorDropper
-        open
-        imageSrc={dropperImage}
-        productName={dropperProductName}
-        onDismiss={() => setDropperImage(null)}
-      />
-    )}
   </>
   );
 };
