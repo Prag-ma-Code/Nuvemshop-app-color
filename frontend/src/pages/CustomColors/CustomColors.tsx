@@ -239,23 +239,18 @@ const CustomColors: React.FC = () => {
             <Box display="flex" flexDirection="column" gap="4">
               <Text>{t('custom-colors.description')}</Text>
 
-              <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap="4">
-                <Card style={{ display: 'flex', flexDirection: 'column', height: '680px' }}>
+              <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap="4" style={{ height: '680px' }}>
+                <Card style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                   <Card.Header title={t('custom-colors.products.title')} />
-                  <Card.Body style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                    <Box display="flex" flexDirection="column" gap="3" style={{ flex: 1, minHeight: 0 }}>
+                  <Card.Body style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+                    <Box display="flex" flexDirection="column" gap="3">
                       <Input
                         value={searchTerm}
                         onChange={(event) => setSearchTerm(event.target.value)}
                         placeholder={t('custom-colors.products.search')}
                       />
 
-                      <Box
-                        display="flex"
-                        flexDirection="column"
-                        gap="4"
-                        style={{ flex: 1, overflow: 'auto', minHeight: 0 }}
-                      >
+                      <Box display="flex" flexDirection="column" gap="4">
                         {isLoading.products && (
                           <Box display="flex" justifyContent="center" padding="4">
                             <Spinner size="small" />
@@ -337,7 +332,7 @@ const CustomColors: React.FC = () => {
                   </Card.Body>
                 </Card>
 
-                <Card style={{ display: 'flex', flexDirection: 'column', height: '680px' }}>
+                <Card style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                   <Card.Header
                     title={
                       selectedProduct
