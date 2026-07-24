@@ -119,9 +119,9 @@
     }
   }
 
-  if (document.readyState === 'complete') {
-    bootstrap();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrap, { once: true });
   } else {
-    window.addEventListener('load', bootstrap, { once: true });
+    bootstrap();
   }
 })();
