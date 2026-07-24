@@ -25,6 +25,7 @@ app.use(
 );
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '../public')));
 app.use(beforeCheckClientMiddleware);
 app.use(AppRoutes);
 app.use(errorHandlingMiddleware);
