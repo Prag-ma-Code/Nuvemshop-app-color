@@ -35,12 +35,35 @@
     return String(window.LS.product.id);
   }
 
-  function findVariantNodes() {
-    return document.querySelectorAll('.js-insta-variant');
+  function getQuickshopProductId() {
+    var modal = document.getElementById('quickshop-modal');
+    if (!modal) return '';
+    var isVisible = modal.style.display !== 'none' ||
+                    modal.classList.contains('modal-show') ||
+                    modal.classList.contains('in');
+    if (!isVisible) return '';
+    var container = modal.querySelector('.js-quickshop-container') || modal;
+    return container.getAttribute('data-product-id') || '';
   }
 
-  function applyMapping(map) {
-    var nodes = findVariantNodes();
+  function findVariantNodes(scope) {
+    return (scope || document).querySelectorAll('.js-insta-variant');
+  }
+
+  function resetAppliedColors(scope) {
+    if (!scope) return;
+    var applied = scope.querySelectorAll('[data-custom-color-applied="true"]');
+    applied.forEach(function (node) {
+      node.removeAttribute('data-custom-color-applied');
+      var contentSpan = node.querySelector('.btn-variant-content');
+      if (contentSpan) {
+        contentSpan.style.background = '';
+      }
+    });
+  }
+
+  function applyMapping(map, scope) {
+    var nodes = findVariantNodes(scope || document);
 
     Object.keys(map || {}).forEach(function (variantName) {
       var mapping = map[variantName];
@@ -75,45 +98,128 @@
     });
   }
 
-  function startObserver(map) {
-    applyMapping(map);
+  var colorsCache = {};
 
-    var observer = new MutationObserver(function () {
-      applyMapping(map);
-    });
+  async function fetchColors(productId) {
+    if (colorsCache[productId]) return colorsCache[productId];
 
-    observer.observe(document.documentElement, {
-      subtree: true,
-      childList: true,
-      attributes: false,
-    });
+    var apiBaseUrl = getApiBaseUrl();
+    if (!apiBaseUrl) return null;
 
-    window.addEventListener('beforeunload', function () {
-      observer.disconnect();
-    }, { once: true });
-  }
-
-  async function bootstrap() {
     try {
-      var productId = getProductId();
-      if (!productId) return;
-
-      var apiBaseUrl = getApiBaseUrl();
-      if (!apiBaseUrl) return;
-
       var response = await fetch(
         apiBaseUrl.replace(/\/$/, '') +
           '/api/public/custom-colors?product_id=' +
           encodeURIComponent(productId),
         { credentials: 'omit' },
       );
-
-      if (!response.ok) return;
-
+      if (!response.ok) return null;
       var data = await response.json();
-      if (!data || typeof data !== 'object') return;
+      if (data && typeof data === 'object') {
+        colorsCache[productId] = data;
+        return data;
+      }
+    } catch (error) {}
+    return null;
+  }
 
-      startObserver(data);
+  function handleQuickshopModal() {
+    var modal = document.getElementById('quickshop-modal');
+    if (!modal) return;
+
+    var isVisible = modal.style.display !== 'none' ||
+                    modal.classList.contains('modal-show') ||
+                    modal.classList.contains('in');
+    if (!isVisible) return;
+
+    var productId = getQuickshopProductId();
+    if (!productId) return;
+
+    if (modal.getAttribute('data-color-product-id') === productId) return;
+
+    fetchColors(productId).then(function (map) {
+      if (!map) return;
+      resetAppliedColors(modal);
+      applyMapping(map, modal);
+      modal.setAttribute('data-color-product-id', productId);
+    });
+  }
+
+  function observeModalVisibility() {
+    var modal = document.getElementById('quickshop-modal');
+    if (!modal) return;
+
+    var modalObserver = new MutationObserver(function () {
+      handleQuickshopModal();
+    });
+
+    modalObserver.observe(modal, {
+      attributes: true,
+      attributeFilter: ['style', 'class'],
+    });
+
+    window.addEventListener('beforeunload', function () {
+      modalObserver.disconnect();
+    }, { once: true });
+
+    handleQuickshopModal();
+  }
+
+  function startObserver(map) {
+    applyMapping(map);
+
+    var mainObserver = new MutationObserver(function () {
+      applyMapping(map);
+      handleQuickshopModal();
+    });
+
+    mainObserver.observe(document.documentElement, {
+      subtree: true,
+      childList: true,
+      attributes: false,
+    });
+
+    observeModalVisibility();
+
+    window.addEventListener('beforeunload', function () {
+      mainObserver.disconnect();
+    }, { once: true });
+  }
+
+  function setupModalOnly() {
+    var mainObserver = new MutationObserver(function () {
+      handleQuickshopModal();
+    });
+
+    mainObserver.observe(document.documentElement, {
+      subtree: true,
+      childList: true,
+      attributes: false,
+    });
+
+    observeModalVisibility();
+
+    window.addEventListener('beforeunload', function () {
+      mainObserver.disconnect();
+    }, { once: true });
+  }
+
+  async function bootstrap() {
+    try {
+      var apiBaseUrl = getApiBaseUrl();
+      if (!apiBaseUrl) return;
+
+      var productId = getProductId();
+
+      if (productId) {
+        var data = await fetchColors(productId);
+        if (data) {
+          startObserver(data);
+          return;
+        }
+      }
+
+      setupModalOnly();
     } catch (error) {
       return;
     }
