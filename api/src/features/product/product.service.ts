@@ -31,20 +31,9 @@ class ProductService {
   }
 
   private async findAllFromApi(user_id: number): Promise<IProductResponse[]> {
-    const perPage = 200;
-    let page = 1;
-    let allProducts: IProductResponse[] = [];
-    let products: IProductResponse[];
-
-    do {
-      products = (await tiendanubeApiClient.get(
-        `${user_id}/products?page=${page}&per_page=${perPage}`
-      )) as IProductResponse[];
-      allProducts = allProducts.concat(products);
-      page++;
-    } while (products.length > 0);
-
-    return allProducts;
+    return (await tiendanubeApiClient.get(
+      `${user_id}/products`
+    )) as IProductResponse[];
   }
 }
 
