@@ -52,6 +52,8 @@ class InstallAppService {
         script_id: scriptId,
         query_params: JSON.stringify({
           api_base: publicApiBaseUrl?.replace(/\/$/, "") ?? "",
+          supabase_url: process.env.SUPABASE_URL ?? "",
+          supabase_anon_key: process.env.SUPABASE_ANON_KEY ?? "",
         }),
       });
     } catch (error) {

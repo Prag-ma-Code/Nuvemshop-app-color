@@ -18,15 +18,17 @@
     return null;
   }
 
-  function getApiBaseUrl() {
+  function getConfigParam(name) {
+    var windowKey = '__NUVEMSHOP_CUSTOM_COLORS_' + name.toUpperCase() + '__';
+    if (window[windowKey]) return window[windowKey];
+
     var scriptElement = getScriptElement();
-    var fallbackUrl = window.__NUVEMSHOP_CUSTOM_COLORS_API__ || '';
-    if (!scriptElement || !scriptElement.src) return fallbackUrl;
+    if (!scriptElement || !scriptElement.src) return '';
     try {
       var url = new URL(scriptElement.src, window.location.href);
-      return url.searchParams.get('api_base') || fallbackUrl;
-    } catch (error) {
-      return fallbackUrl;
+      return url.searchParams.get(name) || '';
+    } catch (e) {
+      return '';
     }
   }
 
@@ -100,10 +102,41 @@
 
   var colorsCache = {};
 
-  async function fetchColors(productId) {
-    if (colorsCache[productId]) return colorsCache[productId];
+  async function fetchColorsFromSupabase(productId) {
+    var supabaseUrl = getConfigParam('supabase_url');
+    var supabaseAnonKey = getConfigParam('supabase_anon_key');
+    if (!supabaseUrl || !supabaseAnonKey) return null;
 
-    var apiBaseUrl = getApiBaseUrl();
+    try {
+      var url = supabaseUrl.replace(/\/$/, '') +
+        '/rest/v1/custom_colors?product_id=eq.' +
+        encodeURIComponent(productId) + '&select=*';
+      var response = await fetch(url, {
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Authorization': 'Bearer ' + supabaseAnonKey,
+        },
+      });
+      if (!response.ok) return null;
+      var records = await response.json();
+      if (!Array.isArray(records)) return null;
+
+      var map = {};
+      records.forEach(function (record) {
+        if (record.variant_name && record.color_hex) {
+          map[record.variant_name] = {
+            color_hex: record.color_hex,
+            display_name: record.display_name || undefined,
+          };
+        }
+      });
+      return Object.keys(map).length > 0 ? map : null;
+    } catch (error) {}
+    return null;
+  }
+
+  async function fetchColorsFromApi(productId) {
+    var apiBaseUrl = getConfigParam('api_base');
     if (!apiBaseUrl) return null;
 
     try {
@@ -115,11 +148,24 @@
       );
       if (!response.ok) return null;
       var data = await response.json();
-      if (data && typeof data === 'object') {
-        colorsCache[productId] = data;
+      if (data && typeof data === 'object' && Object.keys(data).length > 0) {
         return data;
       }
     } catch (error) {}
+    return null;
+  }
+
+  async function fetchColors(productId) {
+    if (colorsCache[productId]) return colorsCache[productId];
+
+    var data = await fetchColorsFromSupabase(productId);
+    if (!data) {
+      data = await fetchColorsFromApi(productId);
+    }
+    if (data) {
+      colorsCache[productId] = data;
+      return data;
+    }
     return null;
   }
 
@@ -206,9 +252,6 @@
 
   async function bootstrap() {
     try {
-      var apiBaseUrl = getApiBaseUrl();
-      if (!apiBaseUrl) return;
-
       var productId = getProductId();
 
       if (productId) {
