@@ -13,7 +13,9 @@ interface IDarkModeContext {
   toggleDarkMode: () => void;
 }
 
-export const DarkModeContext = createContext<IDarkModeContext>(null as any);
+export const DarkModeContext = createContext<IDarkModeContext>(
+  null as unknown as IDarkModeContext,
+);
 
 interface IDarkModeProvider {
   children: ReactNode;

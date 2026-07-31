@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { axios } from '@/app';
 
 import { IApiResponse } from './useFetch.types';
@@ -15,11 +15,11 @@ const useFetch = () => {
         content: axiosResponse?.data as T,
         statusCode: axiosResponse?.status,
       };
-    } catch (error: any) {
-      axiosResponse = error.response;
+    } catch (error) {
+      const axiosError = error as AxiosError<IApiResponse<T>>;
       return Promise.reject({
-        message: axiosResponse?.data.message || 'error',
-        statusCode: axiosResponse?.status,
+        message: axiosError.response?.data?.message || 'error',
+        statusCode: axiosError.response?.status,
       });
     }
   }, []);

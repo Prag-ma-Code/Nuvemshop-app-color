@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { navigateHeaderRemove } from '@tiendanube/nexo';
 import {
@@ -86,20 +86,6 @@ const CustomColors: React.FC = () => {
     saving: false,
   });
 
-  useEffect(() => {
-    navigateHeaderRemove(nexo);
-    loadProducts();
-  }, []);
-
-  useEffect(() => {
-    if (!selectedProductId) {
-      setSavedMappings({});
-      setDraftMappings({});
-      return;
-    }
-    loadSavedMappings(selectedProductId);
-  }, [selectedProductId]);
-
   const selectedProduct = products.find(
     (product) => product.id === selectedProductId,
   );
@@ -122,7 +108,7 @@ const CustomColors: React.FC = () => {
     return normalizeText(getProductName(product)).includes(term);
   });
 
-  const loadProducts = () => {
+  const loadProducts = useCallback(() => {
     setIsLoading((current) => ({ ...current, products: true }));
 
     request<IProduct[]>({ url: '/products', method: 'GET' })
@@ -137,9 +123,9 @@ const CustomColors: React.FC = () => {
       .finally(() => {
         setIsLoading((current) => ({ ...current, products: false }));
       });
-  };
+  }, [request]);
 
-  const loadSavedMappings = (productId: number) => {
+  const loadSavedMappings = useCallback((productId: number) => {
     setIsLoading((current) => ({ ...current, mappings: true }));
 
     request<ColorMappings>({ url: `/custom-colors/${productId}`, method: 'GET' })
@@ -154,10 +140,24 @@ const CustomColors: React.FC = () => {
       .finally(() => {
         setIsLoading((current) => ({ ...current, mappings: false }));
       });
-  };
+  }, [request]);
+
+  useEffect(() => {
+    navigateHeaderRemove(nexo);
+    loadProducts();
+  }, [loadProducts]);
+
+  useEffect(() => {
+    if (!selectedProductId) {
+      setSavedMappings({});
+      setDraftMappings({});
+      return;
+    }
+    loadSavedMappings(selectedProductId);
+  }, [selectedProductId, loadSavedMappings]);
 
   const getMapping = (variantName: string): ColorMapping => {
-    return draftMappings[variantName] ?? savedMappings[variantName] ?? { color_hex: '#d1d5db', display_name: '' };
+    return draftMappings[variantName] ?? savedMappings[variantName] ?? { color_hex: '#d1d5db', display_name: variantName };
   };
 
   const isDraft = (variantName: string): boolean => {
@@ -167,14 +167,14 @@ const CustomColors: React.FC = () => {
   const handleColorChange = (variantName: string, colorHex: string) => {
     setDraftMappings((current) => ({
       ...current,
-      [variantName]: { ...(current[variantName] ?? savedMappings[variantName] ?? { color_hex: '#d1d5db', display_name: '' }), color_hex: colorHex },
+      [variantName]: { ...(current[variantName] ?? savedMappings[variantName] ?? { color_hex: '#d1d5db', display_name: variantName }), color_hex: colorHex },
     }));
   };
 
   const handleDisplayNameChange = (variantName: string, displayName: string) => {
     setDraftMappings((current) => ({
       ...current,
-      [variantName]: { ...(current[variantName] ?? savedMappings[variantName] ?? { color_hex: '#d1d5db', display_name: '' }), display_name: displayName },
+      [variantName]: { ...(current[variantName] ?? savedMappings[variantName] ?? { color_hex: '#d1d5db', display_name: variantName }), display_name: displayName },
     }));
   };
 
@@ -446,7 +446,7 @@ const CustomColors: React.FC = () => {
                                   <Box display="flex" flexDirection="column" gap="1" flex="2">
                                     <Text fontSize="caption">{t('custom-colors.editor.display-name')}</Text>
                                     <Input
-                                      value={mapping.display_name ?? ''}
+                                      value={mapping.display_name || variantName}
                                       onChange={(event) =>
                                         handleDisplayNameChange(variantName, event.target.value)
                                       }

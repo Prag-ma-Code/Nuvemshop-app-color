@@ -39,7 +39,7 @@ interface IImage {
   product_id: number;
   src: string;
   position: number;
-  alt: any[];
+  alt: unknown[];
   created_at: string;
   updated_at: string;
 }

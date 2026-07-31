@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useToast } from '@nimbus-ds/components';
 import { useFetch } from '@/hooks';
 import { IHomeDataProvider } from './home.types';
@@ -12,17 +12,15 @@ const HomeDataProvider: React.FC<IHomeDataProvider> = ({ children }) => {
     createProduct: false,
   });
 
-  useEffect(() => onGetTotalProducts(), []);
-
-  const onGetTotalProducts = () => {
-    setIsLoading({ ...isLoading, totalProducts: true });
+  const onGetTotalProducts = useCallback(() => {
+    setIsLoading((current) => ({ ...current, totalProducts: true }));
     request<{ total: number }>({
       url: '/products/total',
       method: 'GET',
     })
       .then((response) => {
         setTotalProduts(`${response.content.total}`);
-        setIsLoading({ ...isLoading, totalProducts: false });
+        setIsLoading((current) => ({ ...current, totalProducts: false }));
       })
       .catch((error) => {
         setTotalProduts('0');
@@ -32,12 +30,12 @@ const HomeDataProvider: React.FC<IHomeDataProvider> = ({ children }) => {
           duration: 4000,
           id: 'error-total-products',
         });
-        setIsLoading({ ...isLoading, totalProducts: false });
+        setIsLoading((current) => ({ ...current, totalProducts: false }));
       });
-  };
+  }, [addToast, request]);
 
-  const onCreateProduct = () => {
-    setIsLoading({ ...isLoading, createProduct: true });
+  const onCreateProduct = useCallback(() => {
+    setIsLoading((current) => ({ ...current, createProduct: true }));
     request<{ total: number }>({
       url: '/products',
       method: 'POST',
@@ -50,7 +48,7 @@ const HomeDataProvider: React.FC<IHomeDataProvider> = ({ children }) => {
           duration: 4000,
           id: 'create-product',
         });
-        setIsLoading({ ...isLoading, createProduct: false });
+        setIsLoading((current) => ({ ...current, createProduct: false }));
       })
       .catch((error) => {
         setTotalProduts('-');
@@ -60,9 +58,13 @@ const HomeDataProvider: React.FC<IHomeDataProvider> = ({ children }) => {
           duration: 4000,
           id: 'error-create-product',
         });
-        setIsLoading({ ...isLoading, createProduct: false });
+        setIsLoading((current) => ({ ...current, createProduct: false }));
       });
-  };
+  }, [addToast, onGetTotalProducts, request]);
+
+  useEffect(() => {
+    onGetTotalProducts();
+  }, [onGetTotalProducts]);
 
   return children({ totalProducts, onCreateProduct, isLoading });
 };

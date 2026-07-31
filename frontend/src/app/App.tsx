@@ -23,7 +23,7 @@ const App: React.FC = () => {
           setIsConnect(false);
         });
     }
-  }, []);
+  }, [isConnect]);
 
   if (!isConnect)
     return (
