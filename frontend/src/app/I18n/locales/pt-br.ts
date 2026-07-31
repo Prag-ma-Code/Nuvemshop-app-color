@@ -79,6 +79,7 @@ export default {
         'save-error': 'Erro ao salvar alterações',
         color: 'Cor',
         'display-name': 'Nome na vitrine',
+        'preset-color': 'Cor predefinida',
       },
     },
   },

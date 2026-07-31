@@ -17,6 +17,7 @@ import { Layout, Page } from '@nimbus-ds/patterns';
 import { nexo } from '@/app';
 import { useFetch } from '@/hooks';
 import { IProduct, IVariant } from '../Products/products.types';
+import ColorPresetSelect from './ColorPresetSelect';
 
 interface ColorMapping {
   color_hex: string;
@@ -453,6 +454,14 @@ const CustomColors: React.FC = () => {
                                       placeholder={variantName}
                                     />
                                   </Box>
+                                </Box>
+
+                                <Box display="flex" flexDirection="column" gap="1">
+                                  <Text fontSize="caption">{t('custom-colors.editor.preset-color')}</Text>
+                                  <ColorPresetSelect
+                                    value={mapping.color_hex}
+                                    onChange={(colorHex) => handleColorChange(variantName, colorHex)}
+                                  />
                                 </Box>
                               </Box>
                             );
